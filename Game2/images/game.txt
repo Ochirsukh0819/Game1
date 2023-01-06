@@ -1,0 +1,239 @@
+#include <iostream>
+#include <SFML\Graphics.hpp>
+#include<SFML\Window.hpp>
+#include<SFML\System.hpp>
+#include<math.h>
+#include<stdlib.h>
+#include <vector>
+
+
+using namespace sf;
+
+
+// create class
+class Player {
+
+    public:
+    int hp; 
+    int hpMax; 
+    sf::Texture texture;
+    sf::Sprite sprite;
+    Player() {
+        this->hpMax = 10;
+        this->hp = this->hpMax;
+        this->texture.loadFromFile("C:/Users/user/OneDrive/Desktop/ninja.png");
+        sprite.setTexture(texture);
+        sprite.setScale(0.4f, 0.4f);
+        
+    }
+};
+
+// princess 
+
+class Princess {
+public:
+    int hp;
+    int hpMax;
+    sf::Texture ptext;
+    sf::Sprite spriteP;
+    Princess() {
+        this->hpMax = 10;
+        this->hp = this->hpMax;
+        this->ptext.loadFromFile("C:/Users/user/OneDrive/Desktop/princess.png");
+        spriteP.setTexture(ptext);
+        spriteP.setScale(0.3f, 0.3f);
+        spriteP.setPosition(-40, 400);
+
+    }
+
+};
+     
+
+
+
+// bullet class
+
+class Bullet {
+public:
+    Vector2f currVelocity;
+    float maxSpeed;
+    float radius;
+    sf::Texture text;
+    sf::Sprite s;
+
+    Bullet()
+    {
+        this->currVelocity = Vector2f(0.f, 0.f);
+        this->radius = 2.f;
+        this->maxSpeed = 8.f;
+        this->text.loadFromFile("C:/Users/user/OneDrive/Desktop/weapon.png");
+        s.setTexture(text);
+        s.setScale(0.1f, 0.1f);
+    }
+};
+
+// enemy class
+class Enemy {
+public:
+    int HP;
+    int hpMax;
+    int random;
+    sf::Texture enemyText;
+    sf::Sprite enemySprite;
+
+    Enemy() {
+        this->hpMax = rand() % 3 + 1;
+        this->HP = this->hpMax;
+        this->enemyText.loadFromFile("C:/Users/user/OneDrive/Desktop/enemy.png");
+        this->enemySprite.setTexture(enemyText);
+        enemySprite.setScale(0.3f, 0.3f);
+    }
+ };
+
+
+    int main()
+    {
+        srand(time(NULL));
+        RenderWindow window(VideoMode(1800, 1000), "shooter game", Style::Default);
+        window.setFramerateLimit(60);
+
+        //create player
+        Player player;
+
+
+        // bullets
+        Bullet b1;
+        std::vector<Bullet> bullets;
+        bullets.push_back(Bullet(b1));
+
+        // princess
+        Princess princess;
+
+        Enemy enemy;
+        //int random=10;
+
+        std::vector<Sprite> enemies;
+
+
+        // Vector
+        Vector2f playerCenter;
+        Vector2f mousePos;
+        Vector2f aimDir;
+        Vector2f aimDirNorm;
+        float p;
+
+
+        while (window.isOpen()) {
+
+            Event event;
+            while (window.pollEvent(event))
+            {
+                if (event.type == Event::Closed)
+                    window.close();
+            }
+
+            // mouse position
+            playerCenter = Vector2f(player.sprite.getPosition().x + player.texture.getSize().x - 550, player.sprite.getPosition().y + player.texture.getSize().y - 330);
+            mousePos = Vector2f(Mouse::getPosition(window));
+            aimDir = mousePos - playerCenter;
+            p = sqrt(pow(aimDir.x, 2) + pow(aimDir.y, 2));
+
+            aimDirNorm = aimDir / p;
+
+            std::cout << aimDirNorm.x << " " << aimDirNorm.y << " \n";
+
+            // Player move
+            if (Keyboard::isKeyPressed(Keyboard::Left))
+                player.sprite.move(-10.f, 0.f);
+            if (Keyboard::isKeyPressed(Keyboard::Right)) 
+                player.sprite.move(10.f, 0.f);
+            if (Keyboard::isKeyPressed(Keyboard::Up))
+                player.sprite.move(0.f, -10.f);
+            if (Keyboard::isKeyPressed(Keyboard::Down))
+                player.sprite.move(0.f, 10.f);
+
+            // window collision
+              if (player.sprite.getPosition().x <= 0)  // L 
+                player.sprite.setPosition(10.f, player.sprite.getPosition().y);
+             if (player.sprite.getPosition().x >= window.getSize().x - player.sprite.getGlobalBounds().width) // R
+                 player.sprite.setPosition(window.getSize().x - player.sprite.getGlobalBounds().width, player.sprite.getPosition().y);
+            if (player.sprite.getPosition().y <= 0) // T
+                player.sprite.setPosition(player.sprite.getPosition().x, 0.f);
+            if (player.sprite.getPosition().y >= window.getSize().y - player.sprite.getGlobalBounds().height -40.f) // B 
+                player.sprite.setPosition(player.sprite.getPosition().x, window.getSize().y -40 - player.sprite.getGlobalBounds().height);
+
+
+            // enemies
+            if (enemy.random <= 10)
+                enemy.random++;
+
+            if (enemy.random > 10 && enemy.random < 15) {
+                // enemy.enemySprite.setPosition(Vector2f(rand() % window.getSize().x, rand() % window.getSize().x));
+                 enemy.enemySprite.setPosition(window.getSize().x - enemy.enemySprite.getGlobalBounds().width, rand() % (window.getSize().y -  150));
+                enemies.push_back(Sprite(enemy.enemySprite));
+                enemy.random = 0;
+            }
+
+            // shooting
+            if (Mouse::isButtonPressed(Mouse::Left))
+            {
+                b1.s.setPosition(playerCenter);
+                b1.currVelocity = aimDirNorm * b1.maxSpeed;
+                bullets.push_back(Bullet(b1));
+
+            }
+            for (size_t i = 0; i < bullets.size(); i++) {
+
+                bullets[i].s.move(bullets[i].currVelocity);
+
+                if (bullets[i].s.getPosition().x < 0 || bullets[i].s.getPosition().x > window.getSize().x
+                    || bullets[i].s.getPosition().y< 0 || bullets[i].s.getPosition().y > window.getSize().y)
+                {
+                    bullets.erase(bullets.begin() + i);
+                }
+                // hoorondoh morgoldoon     
+                else {
+                    for (size_t k = 0; k < enemies.size(); k++) {
+                        if (bullets[i].s.getGlobalBounds().intersects(enemies[k].getGlobalBounds()))
+                        {
+                            bullets.erase(bullets.begin() + i);
+                            enemies.erase(enemies.begin() + k);
+                            break;
+                        }
+                    }
+                }
+            }	
+
+            window.clear();
+
+            // enemy
+
+            for (size_t i = 0; i < enemies.size(); i++) {
+                enemies[i].move(-5.f, 0.f);
+
+                if (enemies[i].getPosition().x <= 0 - enemies[i].getGlobalBounds().width)
+                    enemies.erase(enemies.begin() + i);
+                if (enemies[i].getGlobalBounds().intersects(player.sprite.getGlobalBounds()))
+                    enemies.erase(enemies.begin() + i);
+
+                window.draw(enemies[i]);
+
+            }
+
+
+
+            //window.draw(player);
+
+            //bullets
+            for (size_t i = 0; i < bullets.size(); i++)
+                window.draw(bullets[i].s);
+
+
+            window.draw(player.sprite);
+            window.draw(princess.spriteP);
+            // window.draw(bullets[0].s);
+            window.display();
+
+
+        }
+    } 
